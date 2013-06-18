@@ -37,37 +37,23 @@ public class MarkdownPreferencePage
 	public static final String PREF_TASK_TAGS = "Pref_TaskTagsOn";
 	public static final String PREF_TASK_TAGS_DEFINED = "Pref_TaskTags";
 	public static final String PREF_SECTION_NUMBERS = "Pref_SectionNumbers";
+	public static final String PREF_JEKYLL = "Pref_JekyllHeaders";
 
 	public static final String PREF_MARKDOWN_COMMAND = "Pref_Markdown_Command";
-	private static final String MARKDOWNJ = "(use built-in MarkdownJ converter)";
+	public static final String MARKDOWNJ = "(use built-in MarkdownJ converter)";
 	
 
 	public static final String PREF_DEFUALT = "Pref_Default";
 	public static final String PREF_COMMENT = "Pref_Comment";
 	public static final String PREF_HEADER = "Pref_Header";
 	public static final String PREF_LINK = "Pref_Link";
-	private static final RGB DEF_DEFAULT = new RGB(0, 0, 0);
-	private static final RGB DEF_COMMENT = new RGB(128, 0, 0);
-	private static final RGB DEF_HEADER = new RGB(0, 128, 0);
-	private static final RGB DEF_LINK = new RGB(0, 0, 128);
+	public static final RGB DEF_DEFAULT = new RGB(0, 0, 0);
+	public static final RGB DEF_COMMENT = new RGB(128, 0, 0);
+	public static final RGB DEF_HEADER = new RGB(0, 128, 0);
+	public static final RGB DEF_LINK = new RGB(0, 0, 128);
 	
 	public MarkdownPreferencePage() {
 		super(GRID);
-		IPreferenceStore pStore = Activator.getDefault().getPreferenceStore();
-		pStore.setDefault(PREF_WORD_WRAP, false);
-		pStore.setDefault(PREF_FOLDING, true);
-		pStore.setDefault(PREF_TASK_TAGS, true);
-		pStore.setDefault(PREF_TASK_TAGS_DEFINED, "TODO,FIXME,??");
-		pStore.setDefault(PREF_MARKDOWN_COMMAND, MARKDOWNJ);
-		pStore.setDefault(PREF_SECTION_NUMBERS, true);
-		
-		PreferenceConverter.setDefault(pStore, PREF_DEFUALT, DEF_DEFAULT);
-		PreferenceConverter.setDefault(pStore, PREF_COMMENT, DEF_COMMENT);
-		PreferenceConverter.setDefault(pStore, PREF_HEADER, DEF_HEADER);
-		PreferenceConverter.setDefault(pStore, PREF_HEADER, DEF_LINK);
-		
-		setPreferenceStore(pStore);
-		setDescription("Settings for the Markdown text editor. See also the general text editor preferences.");
 	}
 	
 	/**
@@ -97,6 +83,10 @@ public class MarkdownPreferencePage
 		// Code folding
 		fd = new BooleanFieldEditor(PREF_FOLDING,
 				"Document folding, a.k.a. outline support",
+				getFieldEditorParent());
+		addField(fd);
+		fd = new BooleanFieldEditor(PREF_JEKYLL,
+				"Expect Jekyll markup",
 				getFieldEditorParent());
 		addField(fd);
 		// Command line		
@@ -132,7 +122,8 @@ public class MarkdownPreferencePage
 	 * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)
 	 */
 	public void init(IWorkbench workbench) {
-		
+		setPreferenceStore(Activator.getDefault().getPreferenceStore());
+		setDescription("Settings for the Markdown text editor. See also the general text editor preferences.");
 	}
 
 	public static boolean wordWrap() {

@@ -5,19 +5,14 @@
  */
 package winterwell.markdown.editors;
 
-import org.eclipse.jface.preference.IPreferenceStore;
-import org.eclipse.jface.preference.PreferenceConverter;
-import org.eclipse.jface.text.TextAttribute;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.jface.text.rules.IRule;
-import org.eclipse.jface.text.rules.IWhitespaceDetector;
 import org.eclipse.jface.text.rules.MultiLineRule;
 import org.eclipse.jface.text.rules.RuleBasedScanner;
 import org.eclipse.jface.text.rules.Token;
-import org.eclipse.jface.text.rules.WhitespaceRule;
-import org.eclipse.swt.SWT;
-
-import winterwell.markdown.Activator;
-import winterwell.markdown.preferences.MarkdownPreferencePage;
 
 /**
  * 
@@ -25,30 +20,31 @@ import winterwell.markdown.preferences.MarkdownPreferencePage;
  * @author Daniel Winterstein
  */
 public class MDScanner extends RuleBasedScanner {
-	ColorManager cm;
-    public MDScanner(ColorManager cm) {
-    	this.cm = cm;
-    	IPreferenceStore pStore = Activator.getDefault().getPreferenceStore();
-    	Token heading = new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(pStore, MarkdownPreferencePage.PREF_HEADER)), null, SWT.BOLD));
-    	Token comment = new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(pStore, MarkdownPreferencePage.PREF_COMMENT))));
-    	Token emphasis = new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(pStore, MarkdownPreferencePage.PREF_DEFUALT)), null, SWT.ITALIC));
-    	Token list = new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(pStore, MarkdownPreferencePage.PREF_HEADER)), null, SWT.BOLD));
-    	Token link = new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(pStore, MarkdownPreferencePage.PREF_LINK)), null, TextAttribute.UNDERLINE));
-        setRules(new IRule[] {
-           new LinkRule(link),
-           new HeaderRule(heading),
-           new ListRule(list),
-           new EmphasisRule("_", emphasis),
-           new EmphasisRule("***", emphasis),
-           new EmphasisRule("**", emphasis),
-           new EmphasisRule("*", emphasis),
-           new MultiLineRule("<!--", "-->", comment),
-           // WhitespaceRule messes up with the rest of rules
-//           new WhitespaceRule(new IWhitespaceDetector() {
-//              public boolean isWhitespace(char c) {
-//                 return Character.isWhitespace(c);
-//              }
-//           }),
-        });
-     }
+	
+	public static final String MD_LINK = "__link";
+	public static final String MD_HEADER = "__header";
+	public static final String MD_LIST = "__list";
+	public static final String MD_EMPHASIS = "__emphasis";
+	public static final String MD_COMMENT = "__comment";
+	public static final String MD_JEKYLL_HEADER = "__jekyllHeader";
+	
+    public MDScanner() {
+    	Token emphasis = new Token(MD_EMPHASIS);
+		List<IRule> rules = new ArrayList<IRule>(Arrays.asList(
+    	           new LinkRule(new Token(MD_LINK)),
+    	           new HeaderRule(new Token(MD_HEADER)),
+    	           new ListRule(new Token(MD_LIST)),
+    	           new EmphasisRule("_", emphasis),
+    	           new EmphasisRule("***", emphasis),
+    	           new EmphasisRule("**", emphasis),
+    	           new EmphasisRule("*", emphasis),
+    	           new MultiLineRule("<!--", "-->", new Token(MD_COMMENT)),
+    	           new JekyllHeaderRule(new Token(MD_JEKYLL_HEADER))
+    			));
+        setRules(rules.toArray(new IRule[rules.size()]));
+    }
+    
+    public int getOffset() {
+    	return fOffset;
+    }
 }

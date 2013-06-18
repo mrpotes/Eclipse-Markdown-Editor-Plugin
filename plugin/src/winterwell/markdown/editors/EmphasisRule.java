@@ -7,6 +7,7 @@ package winterwell.markdown.editors;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.rules.ICharacterScanner;
+import org.eclipse.jface.text.rules.IPredicateRule;
 import org.eclipse.jface.text.rules.IRule;
 import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.MultiLineRule;
@@ -49,11 +50,6 @@ public class EmphasisRule implements IRule {
 		return true;
 	}
 
-	/*
-	 * @see IRule#evaluate(ICharacterScanner)
-	 * 
-	 * @since 2.0
-	 */
 	public IToken evaluate(ICharacterScanner scanner) {
 		// Should be connected only on the right side
 		scanner.unread();
@@ -108,5 +104,6 @@ public class EmphasisRule implements IRule {
 			scanner.unread();
 		return Token.UNDEFINED;
 	}
+
 	
 }

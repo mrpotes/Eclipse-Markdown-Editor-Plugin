@@ -68,6 +68,10 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 		// protected List fContent= new ArrayList(10);
 		private MarkdownEditor fTextEditor;
 
+		public ContentProvider(MarkdownEditor fTextEditor) {
+			this.fTextEditor = fTextEditor;
+		}
+
 		private void parse() {
 			fContent = fTextEditor.getMarkdownPage();
 		}
@@ -78,7 +82,7 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
 			// Detach from old
 			if (oldInput != null) {
-				IDocument document = fDocumentProvider.getDocument(oldInput);
+				IDocument document = fTextEditor.getDocumentProvider().getDocument(oldInput);
 				if (document != null) {
 					document.removeDocumentListener(this);
 				}
@@ -87,7 +91,7 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 			// Attach to new
 			if (newInput == null)
 				return;
-			IDocument document = fDocumentProvider.getDocument(newInput);
+			IDocument document = fTextEditor.getDocumentProvider().getDocument(newInput);
 			if (document == null)
 				return;
 			fTextEditor = MarkdownEditor.getEditor(document);
@@ -163,7 +167,6 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 	}
 
 	private Object fInput = null;
-	private final IDocumentProvider fDocumentProvider;
 	private final MarkdownEditor fTextEditor;
 	protected boolean showWordCounts;
 	private List<Header> selectedHeaders;
@@ -172,9 +175,7 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 	 * @param documentProvider
 	 * @param mdEditor
 	 */
-	public MarkdownContentOutlinePage(IDocumentProvider documentProvider,
-			MarkdownEditor mdEditor) {
-		fDocumentProvider = documentProvider;
+	public MarkdownContentOutlinePage(MarkdownEditor mdEditor) {
 		fTextEditor = mdEditor;
 	}
 
@@ -185,7 +186,7 @@ public final class MarkdownContentOutlinePage extends ContentOutlinePage {
 	public void createControl(Composite parent) {
 		super.createControl(parent);
 		TreeViewer viewer = getTreeViewer();
-		viewer.setContentProvider(new ContentProvider());
+		viewer.setContentProvider(new ContentProvider(fTextEditor));
 		// Add word count annotations
 		viewer.setLabelProvider(new LabelProvider() {
 			@Override

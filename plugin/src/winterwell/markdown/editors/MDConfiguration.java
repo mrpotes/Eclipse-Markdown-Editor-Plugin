@@ -1,71 +1,100 @@
 package winterwell.markdown.editors;
 
-import org.eclipse.core.runtime.NullProgressMonitor;
+import static winterwell.markdown.editors.MDScanner.MD_COMMENT;
+import static winterwell.markdown.editors.MDScanner.MD_EMPHASIS;
+import static winterwell.markdown.editors.MDScanner.MD_HEADER;
+import static winterwell.markdown.editors.MDScanner.MD_JEKYLL_HEADER;
+import static winterwell.markdown.editors.MDScanner.MD_LINK;
+import static winterwell.markdown.editors.MDScanner.MD_LIST;
+import static winterwell.markdown.preferences.MarkdownPreferencePage.PREF_COMMENT;
+import static winterwell.markdown.preferences.MarkdownPreferencePage.PREF_DEFUALT;
+import static winterwell.markdown.preferences.MarkdownPreferencePage.PREF_HEADER;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITextHover;
+import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.presentation.IPresentationReconciler;
 import org.eclipse.jface.text.presentation.PresentationReconciler;
-import org.eclipse.jface.text.reconciler.DirtyRegion;
-import org.eclipse.jface.text.reconciler.IReconciler;
-import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
-import org.eclipse.jface.text.reconciler.MonoReconciler;
+import org.eclipse.jface.text.rules.BufferedRuleBasedScanner;
 import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
+import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.source.ISourceViewer;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.swt.SWT;
 import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
 
+import winterwell.markdown.Activator;
+
 public class MDConfiguration extends TextSourceViewerConfiguration {
-	private ColorManager colorManager;
+	private ColorManager cm;
+	private List<SingleTokenScanner> scanners = new ArrayList<SingleTokenScanner>();
 
 	public MDConfiguration(ColorManager colorManager, IPreferenceStore prefStore) {
 		super(prefStore);
-		this.colorManager = colorManager;
+		this.cm = colorManager;
+	}
+	
+	@Override
+	public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
+		return new String[] {
+			IDocument.DEFAULT_CONTENT_TYPE,
+			MD_COMMENT,
+			MD_EMPHASIS,
+			MD_HEADER,
+			MD_JEKYLL_HEADER,
+			MD_LINK,
+			MD_LIST
+		};
 	}
 
 	@Override
 	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
-		MDScanner scanner = new MDScanner(colorManager);
-		PresentationReconciler pr = (PresentationReconciler) super.getPresentationReconciler(sourceViewer); // FIXME
-		DefaultDamagerRepairer ddr = new DefaultDamagerRepairer(scanner);
-		pr.setRepairer(ddr, IDocument.DEFAULT_CONTENT_TYPE);
-		pr.setDamager(ddr, IDocument.DEFAULT_CONTENT_TYPE);
+		PresentationReconciler pr = new PresentationReconciler();
+		addReconciler(pr, IDocument.DEFAULT_CONTENT_TYPE, PREF_DEFUALT, SWT.NORMAL);
+		addReconciler(pr, MD_COMMENT, PREF_COMMENT, SWT.NORMAL);
+		addReconciler(pr, MD_EMPHASIS, PREF_DEFUALT, SWT.ITALIC);
+		addReconciler(pr, MD_HEADER, PREF_HEADER, SWT.BOLD);
+		addReconciler(pr, MD_JEKYLL_HEADER, PREF_COMMENT, SWT.ITALIC);
+		addReconciler(pr, MD_LINK, PREF_COMMENT, TextAttribute.UNDERLINE);
+		addReconciler(pr, MD_LIST, PREF_HEADER, SWT.NORMAL);
 		return pr;
 	}
 
+	private void addReconciler(PresentationReconciler pr, String contentType, String pref, int fontMod) {
+		SingleTokenScanner scanner = new SingleTokenScanner(cm, fPreferenceStore, pref, fontMod);
+		scanners.add(scanner);
+		DefaultDamagerRepairer ddr = new DefaultDamagerRepairer(scanner);
+		pr.setRepairer(ddr, contentType);
+		pr.setDamager(ddr, contentType);
+	}
 	
-	@Override
-	public IReconciler getReconciler(ISourceViewer sourceViewer) {
-		// This awful mess adds in update support
-		// Get super strategy
-		IReconciler rs = super.getReconciler(sourceViewer);
-		if (true) return rs;	// Seems to work fine?!
-		final IReconcilingStrategy fsuperStrategy = rs==null? null : rs.getReconcilingStrategy("text");
-		// Add our own
-		IReconcilingStrategy strategy = new IReconcilingStrategy() {
-			private IDocument doc;
-			public void reconcile(IRegion partition) {
-				MarkdownEditor ed = MarkdownEditor.getEditor(doc);
-				if (ed != null) ed.updatePage(partition);
-				if (fsuperStrategy!=null) fsuperStrategy.reconcile(partition);
-			}
-			public void reconcile(DirtyRegion dirtyRegion, IRegion subRegion) {
-				MarkdownEditor ed = MarkdownEditor.getEditor(doc);
-				if (ed != null) ed.updatePage(subRegion);
-				if (fsuperStrategy!=null) fsuperStrategy.reconcile(dirtyRegion, subRegion);
-			}
-			public void setDocument(IDocument document) {
-				this.doc = document;
-				if (fsuperStrategy!=null) fsuperStrategy.setDocument(document);
-			}			
-		};
-		// Make a reconciler
-		MonoReconciler m2 = new MonoReconciler(strategy, true);
-		m2.setIsIncrementalReconciler(true);
-		m2.setProgressMonitor(new NullProgressMonitor());
-		m2.setDelay(500);
-		// Done
-		return m2;
+	void updateColours() {
+		for (SingleTokenScanner s: scanners) s.setDefaultReturnToken();
+	}
+
+	static class SingleTokenScanner extends BufferedRuleBasedScanner {
+		private String pref;
+		private IPreferenceStore prefStore;
+		private int fontMod;
+		private ColorManager cm;
+
+		public SingleTokenScanner(ColorManager cm, IPreferenceStore prefStore, String pref, int fontMod) {
+			this.pref = pref;
+			this.prefStore = prefStore;
+			this.fontMod = fontMod;
+			this.cm = cm;
+			setDefaultReturnToken();
+		}
+
+		private void setDefaultReturnToken() {
+			setDefaultReturnToken(new Token(new TextAttribute(cm.getColor(PreferenceConverter.getColor(prefStore, pref)), null, fontMod)));
+		}
 	}
 	
 	@SuppressWarnings("unused")

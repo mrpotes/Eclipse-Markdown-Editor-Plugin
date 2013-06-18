@@ -6,6 +6,7 @@
 package winterwell.markdown.editors;
 
 import org.eclipse.jface.text.rules.ICharacterScanner;
+import org.eclipse.jface.text.rules.IPredicateRule;
 import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.rules.IRule;
@@ -25,15 +26,6 @@ public class LinkRule implements IRule {
 		fToken= token;
 	}
 	
-	/*
-	 * @see IPredicateRule#getSuccessToken()
-	 * @since 2.0
-	 */
-	public IToken getSuccessToken() {
-		return fToken;
-	}
-
-
 	// Copied from org.eclipse.jface.text.rules.PatternRule
 	protected boolean sequenceDetected(ICharacterScanner scanner, char[] sequence, boolean eofAllowed) {
 		for (int i= 1; i < sequence.length; i++) {
@@ -51,13 +43,12 @@ public class LinkRule implements IRule {
 		}
 		return true;
 	}
-	
-	/*
-	 * @see IRule#evaluate(ICharacterScanner)
-	 * @since 2.0
-	 */
+
 	public IToken evaluate(ICharacterScanner scanner) {
 		int c;
+		if (fDelimiters == null) {
+			fDelimiters = scanner.getLegalLineDelimiters();
+		}
 		if ((c = scanner.read()) != '[') {
 			if ((c != 'h' || ( !sequenceDetected(scanner, "http://".toCharArray(), false) && !sequenceDetected(scanner, "https://".toCharArray(), false) ))
 					&& (c != 'f' || !sequenceDetected(scanner, "ftp://".toCharArray(), false)) ) {
@@ -75,9 +66,6 @@ public class LinkRule implements IRule {
 				}
 			}
 			return fToken;
-		}
-		if (fDelimiters == null) {
-			fDelimiters = scanner.getLegalLineDelimiters();
 		}
 		int readCount = 1;
 		

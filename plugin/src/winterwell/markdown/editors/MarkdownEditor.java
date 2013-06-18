@@ -37,7 +37,6 @@ import org.eclipse.ui.IPathEditorInput;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
 import org.eclipse.ui.texteditor.IDocumentProvider;
-import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 import winterwell.markdown.Activator;
@@ -77,6 +76,7 @@ public class MarkdownEditor extends TextEditor implements IDocumentListener
 		pStore = Activator.getDefault().getPreferenceStore();
 		colorManager = new ColorManager();
 		setSourceViewerConfiguration(new MDConfiguration(colorManager, getPreferenceStore()));
+		setDocumentProvider(new MDDocumentProvider());
 	}
 
 	
@@ -105,10 +105,10 @@ public class MarkdownEditor extends TextEditor implements IDocumentListener
 			IVerticalRuler ruler, int styles) {
 //		if (true) return super.createSourceViewer(parent, ruler, styles);
 		// Create with code-folding
-		ISourceViewer viewer = new ProjectionViewer(parent, ruler,
+		final ISourceViewer viewer = new ProjectionViewer(parent, ruler,
 				getOverviewRuler(), isOverviewRulerVisible(), styles);
 		// ensure decoration support has been created and configured.
-		SourceViewerDecorationSupport decSupport = getSourceViewerDecorationSupport(viewer);
+//		SourceViewerDecorationSupport decSupport = getSourceViewerDecorationSupport(viewer);
 //		SourceViewer viewer = (SourceViewer) super.createSourceViewer(parent, ruler, styles);
 		// Setup word-wrapping		
 		final StyledText widget = viewer.getTextWidget();
@@ -118,6 +118,8 @@ public class MarkdownEditor extends TextEditor implements IDocumentListener
 				if (event.getProperty().equals(MarkdownPreferencePage.PREF_WORD_WRAP)) {
 					widget.setWordWrap(MarkdownPreferencePage.wordWrap());
 				}
+				((MDConfiguration)getSourceViewerConfiguration()).updateColours();
+				viewer.invalidateTextPresentation();
 			}			
 		};
 		pStore.addPropertyChangeListener(prefChangeListener);
@@ -163,10 +165,10 @@ public class MarkdownEditor extends TextEditor implements IDocumentListener
 	}
 	
 
-	public Object getAdapter(Class required) {
+	public Object getAdapter(@SuppressWarnings("rawtypes") Class required) {
 		if (IContentOutlinePage.class.equals(required)) {
 			if (fOutlinePage == null) {
-				fOutlinePage= new MarkdownContentOutlinePage(getDocumentProvider(), this);
+				fOutlinePage= new MarkdownContentOutlinePage(this);
 				if (getEditorInput() != null)
 					fOutlinePage.setInput(getEditorInput());
 			}
